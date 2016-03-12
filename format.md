@@ -20,7 +20,9 @@
 
 ## Generic representation
 
-The first step in interpreting a document is to construct its *generic representation*, parsing its markup to identify the elements and their structure. Each element in the document is either a **generic atom**, or a **generic node**. A generic atom is a string containing the atom's presentation (after interpreting flow) together with an implicit or explicit type. A generic node consists of **parent element** together with zero or more ordered **child elements**. If all parent elements are atoms, then the data structure is simply a tree, but node parents are permissible.
+The first step in interpreting a document is to construct its *generic representation*, parsing its markup to identify the elements and their structure. Each element in the document is either a **generic atom**, or a **generic node**. A generic atom is a string containing the atom's presentation (after interpreting flow) together with an implicit or explicit type. A generic node consists of a **content** element together with zero or more ordered **children**. If all content elements are atoms, then the data structure is simply a tree, but node contents are permissible.
+
+The root of every document is a special `root` node; the contents of the document are structured into a set of nodes and atoms descending from the `root`.
 
 ## Indentation
 
@@ -56,6 +58,12 @@ There are several quoting methods which force the quoted content to be treated a
 * Beginning with a line `+++ BEGIN X +++` and ending with `+++ END X +++`, uses *block wrapping* mode, and escape sequences are not interpreted. Stripping is performed.
 * Beginning with a line `~~~ BEGIN X ~~~` and ending with `~~~ END X ~~~`, uses *non-wrapping* mode, escape sequences are not interpreted, and stripping is not performed.
 
+## Structuring markup
+
+### `:`
+
+A line containing a `:` indicates a node with exactly one child. The element preceeding the `:` forms the content, and following the `:` forms the child. *Line delimiter* mode is applied to the line. If the child is empty, and the next non-empty line is of increasing indentation level, then the next indentation block is the child. Otherwise, the child is `null`.
+
 ## Atoms
 
 ### `null`
@@ -79,9 +87,57 @@ Representation of text. An atom whose presentation does not match any other impl
 
 ## Collections
 
-### Associative pair
+### `pair`, associative pair
 
-### List
+A `pair` or **associative pair** is a node with exactly one child. The content is called the **key**, and the child the **value**. It can be implicitly represented with the following presentations:
+
+```
+key: value
+```
+
+Useful when both key and value have single-line presentations.
+
+```
+key:
+    value
+```
+
+Useful when value has a multi-line presentation.
+
+A pair can be explicitly presented as:
+
+```
+pair::
+    key
+        value
+```
+
+### `list`
+
+A `list` is a node for which the content is `null`. It can be implicitly presented in several ways.
+
+Bracketed presentation, single or multi-line:
+```
+[item1, item2, item3]
+
+[item1,
+item2,
+item3]
+
+[
+item1,
+item2,
+item3,
+]
+```
+Note that multiple and trailing commas are ignored, and newlines are treated as whitespace.
+
+Bulleted presentation (only implicitly `list` if no content is available to act as the parent):
+```
+* item1
+* item2
+* item3
+```
 
 ### Set
 
@@ -89,42 +145,9 @@ Representation of text. An atom whose presentation does not match any other impl
 
 ### Associative map
 
-## Atomic types
-
-### `string`
-
-The most primitive atomic type is `string`; no particular structure is required
-in the expression of the atom. Bare text that fails to meet the requirements for
-any other atomic type is implicitly interpreted as a `string`.
-
-#### Example
-```
-This is a string.
-```
-
-parses as itself.
-
-Single newlines in a bare string are converted to a single space; double newlines
-terminate the atom.
-
-#### Example
-```
-This is also
-a string.
-```
-
-parses as
-```
-This is also a string.
-```
-
-Additionally, an atom beginning and ending with `"` or `'`
-
-
-
 
 ---------
-
+```
 This is the first item in the document
     This is a child item because its indentation increased
 This is the second item at the same level as the first
@@ -142,3 +165,4 @@ This is the fifth item at the top level: And this is its sole child
 This is the sixth item because pairs force line delimiting
 * A list with a key: value pair
   What about this key: value pair?
+```
